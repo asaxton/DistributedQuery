@@ -1,0 +1,7 @@
+name = "DistributedQuery"
+uuid = "15823ff3-ba11-45dc-afab-613a0ec31816"
+authors = ["asaxton <saxton@illinois.edu>"]
+version = "0.1.0"
+
+[deps]
+Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
