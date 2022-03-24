@@ -1,7 +1,34 @@
 module DistributedQuery
 using Distributed
+using Serialization
+using DataFrames
+using CSV
 
-function sentinal(df, q_channel,res_channel_dict, status_chan)
+"""
+"""
+function deployDataStore(data_worker_pool, proc_worker_pool, serialized_file_list)
+    if length(data_worker_pool) != length(serialized_file_list)
+        throw(error("""data_worker_pool and serialized_file_list must be the same length: """*
+                    """length(data_worker_pool):$(length(data_worker_pool)), """*
+                    """length(serialized_file_list):$(length(serialized_file_list))"""))
+    end
+    fut = Dict()
+    for (dw, sf) in zip(data_worker_pool, serialized_file_list)
+        _fut = @spawnat dw global DataContainer = deserialize(sf)
+        push!(fut, dw => _fut)
+    end
+    fut
+    #[wait(f) for f in fut]
+end
+
+"""
+Sentinal waits for a item to be put on the q_channel.
+
+The item put in q_channel should either be a String with the message "Done". This will cause sentinal() to exit it's  while loop and truen.
+
+
+"""
+function sentinal(DataContainer, q_channel,res_channel_dict, status_chan)
     stat_dict = Dict("message" => "In sentinal",
                      "t_idx" => 1,
                      "myid()" => myid())
@@ -21,7 +48,7 @@ function sentinal(df, q_channel,res_channel_dict, status_chan)
         stat_dict["message"] = "In sentinal, query_f-ing"
         put!(status_chan, stat_dict)
         try
-            global q_res = query_req["query_f"](df, query_req["query_args"]...)
+            global q_res = query_req["query_f"](DataContainer, query_req["query_args"]...)
         catch e
             stat_dict["message"] = "In sentinal, catching error. e: $(e)"
             put!(status_chan, stat_dict)
@@ -34,6 +61,8 @@ function sentinal(df, q_channel,res_channel_dict, status_chan)
     end
 end
 
+"""
+"""
 function query_client(q_channels, res_channel_dict, agrigate_f, query_f, query_args...)
     query_req = Dict("client" => myid(),
                      "query_f" => query_f,
