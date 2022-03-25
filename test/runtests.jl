@@ -1,13 +1,14 @@
 using Test
 using Distributed
 using ClusterManagers
+using DistributedQuery
 
 proj_path = joinpath(["/", split(Base.current_project(), "/")[1:end-1]...])
 p = addprocs(SlurmManager(3),
              time="00:30:00",
              exeflags="--project=$(proj_path)", ntasks_per_node=1)
 
-@everywhere include("DistributedQuery.jl")
+@everywhere using DistributedQuery
 @everywhere using DataFrames
 @everywhere using CSV
 #proc_chan, data_chan = make_query_channels(p, [1], chan_depth::Int=5);
@@ -15,7 +16,8 @@ p = addprocs(SlurmManager(3),
 _shard_file_list = ["../mockData/iris_df_1.jlb",
                     "../mockData/iris_df_2.jlb",
                     "../mockData/iris_df_3.jlb"]
-shard_file_list = [joinpath(@__DIR__, sf) for sf in _shard_file_list]
+
+shard_file_list = [joinpath(dirname(pathof(DistributedQuery)), sf) for sf in _shard_file_list]
 serialized_file_list = shard_file_list
 data_worker_pool = p
 proc_worker_pool = [myid()]
