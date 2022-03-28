@@ -44,10 +44,46 @@ proc_chan, data_chan = DistributedQuery.make_query_channels(data_worker_pool, pr
 
 status_chan = RemoteChannel(()->Channel{Any}(10000), myid())
 
+query_f = (data, column) -> data[:, column]
+
+query_args = ["sepal_l"]
+
+agrigate_f = (x...) -> sum(vcat(x...))
+
 sentinal_fut =
     [@spawnat p DistributedQuery.sentinal(DistributedQuery.DataContainer,
                                           data_chan[myid()] ,proc_chan,
                                           status_chan)
      for p in data_worker_pool]
 
-rmprocs(p);
+
+
+
+query_task = @async DistributedQuery.query_client(data_chan, proc_chan[1], agrigate_f, query_f, query_args...)
+
+[take!(status_chan) for i in 1:1000 if isready(status_chan)]
+[put!(v, "Done") for (k,v) in data_chan]
+[wait(f) for f in sentinal_fut]
+[take!(status_chan) for i in 1:1000 if isready(status_chan)]
+
+sentinal_fut =
+    [@spawnat p DistributedQuery.sentinal(DistributedQuery.DataContainer,
+                                          data_chan[myid()] ,proc_chan,
+                                          status_chan)
+     for p in data_worker_pool]
+
+query_task = @async DistributedQuery.query_client(data_chan, proc_chan[1], agrigate_f, query_f, query_args...)
+query_timeout_in_s = 10
+sleep(query_timeout_in_s)
+
+
+if istaskdone(query_task)
+    local_result = sum([sum(fetch(f[2])[:, query_args[1]]) for f in fut])
+    query_result = fetch(query_task)
+    @test local_result == query_result
+else
+    print("test query was not done in query_timeout_in_s: $query_timeout_in_s")
+    @test false
+end
+
+#rmprocs(p);

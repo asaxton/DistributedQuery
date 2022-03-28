@@ -64,6 +64,8 @@ function sentinal(DataContainer, q_channel, res_channel_dict, status_chan)
                      "t_idx" => 1,
                      "myid()" => myid())
     put!(status_chan, stat_dict)
+
+    query_failed = false
     while true
         stat_dict["message"] = """In sentinal, waiting for take """*
             """on channel $(q_channel)"""
@@ -81,15 +83,20 @@ function sentinal(DataContainer, q_channel, res_channel_dict, status_chan)
         try
             global q_res = query_req["query_f"](DataContainer, query_req["query_args"]...)
         catch e
+            query_failed = true
             stat_dict["message"] = "In sentinal, catching error. e: $(e)"
             put!(status_chan, stat_dict)
             put!(res_channel_dict[query_req["client"]], e)
-        finally
+        end
+        if !query_failed
             stat_dict["message"] = "In sentinal, putting-ing"
             put!(status_chan, stat_dict)
             put!(res_channel_dict[query_req["client"]], q_res)
+            query_failed = false
         end
     end
+    stat_dict["message"] = "Final Exit"
+    put!(status_chan, stat_dict)
 end
 
 
