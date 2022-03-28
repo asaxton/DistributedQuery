@@ -26,7 +26,7 @@ shard_file_list = [joinpath(dirname(pathof(DistributedQuery)), sf) for sf in _sh
 serialized_file_list = shard_file_list
 data_worker_pool = p
 proc_worker_pool = [myid()]
-fut = DistributedQuery.deployDataStore(data_worker_pool, proc_worker_pool, serialized_file_list)
+fut = DistributedQuery.deployDataStore(data_worker_pool, serialized_file_list)
 
 test_res = [fetch(fut[p]) == @fetchfrom p DistributedQuery.DataContainer for p in data_worker_pool]
 

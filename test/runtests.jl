@@ -3,10 +3,16 @@ using Distributed
 using ClusterManagers
 using DistributedQuery
 
-proj_path = joinpath(["/", split(Base.current_project(), "/")[1:end-1]...])
-p = addprocs(SlurmManager(3),
-             time="00:30:00",
-             exeflags="--project=$(proj_path)", ntasks_per_node=1)
+if Base.current_project() != nothing
+    proj_path = joinpath(["/", split(Base.current_project(), "/")[1:end-1]...])
+    p = addprocs(SlurmManager(3),
+                 time="00:30:00",
+                 exeflags="--project=$(proj_path)", ntasks_per_node=1)
+else
+    p = addprocs(SlurmManager(3),
+                 time="00:30:00",
+                 ntasks_per_node=1)
+end
 
 @everywhere using DistributedQuery
 @everywhere using DataFrames
@@ -21,7 +27,7 @@ shard_file_list = [joinpath(dirname(pathof(DistributedQuery)), sf) for sf in _sh
 serialized_file_list = shard_file_list
 data_worker_pool = p
 proc_worker_pool = [myid()]
-fut = DistributedQuery.deployDataStore(data_worker_pool, proc_worker_pool, serialized_file_list)
+fut = DistributedQuery.deployDataStore(data_worker_pool, serialized_file_list)
 
 test_res = [fetch(fut[p]) == @fetchfrom p DistributedQuery.DataContainer for p in data_worker_pool]
 
