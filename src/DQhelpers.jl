@@ -17,8 +17,9 @@ Example/Helper function for loading serialized files using the deploydatastore
 - `Dict{Any, Any}`: Returns a .
 """
 function loadSerializedFiles(partitioned_file_list)
-	for file in serialized_file_list[myid()]
-		df = deserialize()
+	df = DataFrame()
+	for file in partitioned_file_list[myid()]
+		df = deserialize(file)
 	end
 	return df
 end
