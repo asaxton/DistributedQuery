@@ -82,7 +82,7 @@ function sentinal(DataContainer, q_channel, res_channel_dict, status_chan)
         put!(status_chan, stat_dict)
         try
             query_f = query_req["query_f"]
-            global q_res = query_f(DataContainer, query_req["query_args"]...)
+            global q_res = Base.invokelatest(query_f, DataContainer, query_req["query_args"]...)
         catch e
             query_failed = true
             stat_dict["message"] = "In sentinal, catching error. e: $(e)"
