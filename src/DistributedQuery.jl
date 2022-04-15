@@ -105,6 +105,9 @@ end
 
     function query_client(q_channels, res_channel_dict, agrigate_f, query_f, query_args...)
 
+This funcition is to submit the query to all the data worker, block until the remote queries come back, then apply the agrigation function to all the results.
+
+
 # Throws
 - `Array{Excpetion}`
 """
