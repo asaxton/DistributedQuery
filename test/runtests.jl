@@ -7,7 +7,7 @@ if Base.current_project() != nothing
     proj_path = joinpath(["/", split(Base.current_project(), "/")[1:end-1]...])
     p = addprocs(SlurmManager(3),
                  time="00:30:00",
-                 exeflags="--project=$(proj_path)", ntasks_per_node=1, partition="gpu")
+                 exeflags="--project=$(proj_path)", ntasks_per_node=1)
 else
     p = addprocs(SlurmManager(3),
                  time="00:30:00",
