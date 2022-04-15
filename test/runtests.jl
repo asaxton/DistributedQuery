@@ -18,16 +18,24 @@ end
 @everywhere using DataFrames
 @everywhere using CSV
 #proc_chan, data_chan = make_query_channels(p, [1], chan_depth::Int=5);
+@everywhere function loadSerializedFiles(partitioned_file_list)
+                df = DataFrame()
+                for file in partitioned_file_list[myid()]
+                    df = deserialize(file)
+                end
+                return df
+            end
 
 _shard_file_list = ["../mockData/iris_df_1.jlb",
                     "../mockData/iris_df_2.jlb",
                     "../mockData/iris_df_3.jlb"]
 
 shard_file_list = [joinpath(dirname(pathof(DistributedQuery)), sf) for sf in _shard_file_list]
-serialized_file_list = shard_file_list
+serialized_file_list = DistributedQuery.Helpers.partition(shard_file_list, p) 
 data_worker_pool = p
 proc_worker_pool = [myid()]
-fut = DistributedQuery.deployDataStore(data_worker_pool, serialized_file_list)
+
+fut = DistributedQuery.deployDataStore(data_worker_pool, loadSerializedFiles, [serialized_file_list])
 
 test_res = [fetch(fut[p]) == @fetchfrom p DistributedQuery.DataContainer for p in data_worker_pool]
 
