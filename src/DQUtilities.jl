@@ -6,15 +6,16 @@ using Distributed
 using Serialization
 
 """
-loadSerializedFiles(partitioned_file_list)
 
-Example/Helper function for loading serialized files using the deploydatastore
+	loadSerializedFiles(partitioned_file_list)
+
+Example/Utility function for loading serialized files using the deploydatastore
 
 # Arguments
-- `partitioned_file_list::Any`: Dictionary of arrays where eacch key is a host id and the array is a list of files to be loaded.
+- `partitioned_file_list::Any`: Dictionary of arrays where each key is a host id and the array is a list of files to be loaded.
 
 # Returns
-- `Dict{Any, Any}`: Returns a .
+- `Dict{Any, Any}`: Returns a DataFrame of the contents of all the serialized files.
 """
 function loadSerializedFiles(partitioned_file_list)
 	df = DataFrame()
@@ -26,16 +27,16 @@ function loadSerializedFiles(partitioned_file_list)
 end
 
 """
-partition(data, hosts)
+
+	partition(data, hosts)
 
 Splits the data into a dictionary of non-overlapping equal sized chunks with the host id as the key of each partition
 
 # Arguments
-- `data::Any`: Array of worker ids that each of the data partitions will be placed on
-- `hosts::Any`: Array of host ids
-
+- `data::Any`: Array of data to be partitioned
+- `hosts::Any`: Array of host ids that will be the key of each partition
 # Returns
-- `Dict{Any, Any}`: Returns a Ditionary with worker id as the key, and partition of the data.
+- `Dict{Any, Any}`: Returns a Ditionary with worker id as the key, and a partition of the data as a value.
 """
 function partition(data, hosts)
 	hosts_dict = Dict()

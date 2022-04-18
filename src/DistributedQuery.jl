@@ -5,6 +5,7 @@ using DataFrames
 using CSV
 
 """
+
     deployDataStore(data_worker_pool, worker_func, params=nothing)
 
 deployDataStore takes a function and its parameters and deploys it to each worker in the the data_worker_pool. The results of each worker are assigned to DistributedQuery.DataContainer for later reference and a dictionary of futures of the results is instantly returned.
@@ -12,7 +13,7 @@ deployDataStore takes a function and its parameters and deploys it to each worke
 # Arguments
 - `data_worker_pool::Any`: Array of worker ids that each of the data partitions will be placed on
 - `worker_func::Any`: The function to be deployed on each worker
-- `params` : Optional passing of parameters to the deployed function
+- `params` : Optional array of parameters to be passed to the worker_func 
 
 # Returns
 - `Dict{Any, Future}`: Returns a Ditionary with worker id as the key, and Future of the spawend deserialize task
@@ -99,7 +100,7 @@ end
 
     function query_client(q_channels, res_channel_dict, agrigate_f, query_f, query_args...)
 
-This funcition is to submit the query to all the data worker, block until the remote queries come back, then apply the agrigation function to all the results.
+This function is to submit the query to all the data worker, block until the remote queries come back, then apply the agrigation function to all the results.
 
 
 # Throws
