@@ -11,7 +11,7 @@ if Base.current_project() != nothing
 else
     p = addprocs(SlurmManager(3),
                  time="00:30:00",
-                 ntasks_per_node=1, partition=gpu)
+                 ntasks_per_node=1)
 end
 
 @everywhere using DistributedQuery

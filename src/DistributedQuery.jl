@@ -1,7 +1,5 @@
 module DistributedQuery
-### I believe if I've set this up right, this call will add DQhelpers as a sub-module of DistributedQuery
-### such that you can call it as DistributedQuery.Helpers ### This could be changed to something else though.
-include("DQhelpers.jl")
+include("DQUtilities.jl")
 using Distributed
 using DataFrames
 using CSV
