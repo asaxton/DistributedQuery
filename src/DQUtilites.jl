@@ -1,9 +1,9 @@
-#DQHelpers.jl
-module Helpers
-### I'm unsure if you need to  be "using" these modules in both files or not
+#DQUtilities.jl
+module Utilities
+
+using DataFrames
 using Distributed
 using Serialization
-using DataFrames
 
 """
 loadSerializedFiles(partitioned_file_list)
@@ -19,7 +19,8 @@ Example/Helper function for loading serialized files using the deploydatastore
 function loadSerializedFiles(partitioned_file_list)
 	df = DataFrame()
 	for file in partitioned_file_list[myid()]
-		df = deserialize(file)
+		data = deserialize(file)
+		append!(df, data)
 	end
 	return df
 end
