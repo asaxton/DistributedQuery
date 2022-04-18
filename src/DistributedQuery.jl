@@ -75,7 +75,8 @@ function sentinal(DataContainer, q_channel, res_channel_dict, status_chan)
         stat_dict["message"] = "In sentinal, query_f-ing"
         put!(status_chan, stat_dict)
         try
-            global q_res = query_req["query_f"](DataContainer, query_req["query_args"]...)
+            query_f = query_req["query_f"]
+            global q_res = Base.invokelatest(query_f, DataContainer, query_req["query_args"]...)
         catch e
             query_failed = true
             stat_dict["message"] = "In sentinal, catching error. e: $(e)"
@@ -95,6 +96,14 @@ end
 
 
 """
+
+    function query_client(q_channels, res_channel_dict, agrigate_f, query_f, query_args...)
+
+This funcition is to submit the query to all the data worker, block until the remote queries come back, then apply the agrigation function to all the results.
+
+
+# Throws
+- `Array{Excpetion}`
 """
 function query_client(q_channels, res_channel_dict, agrigate_f, query_f, query_args...)
     query_req = Dict("client" => myid(),
@@ -104,8 +113,15 @@ function query_client(q_channels, res_channel_dict, agrigate_f, query_f, query_a
         put!(chan, query_req)
     end
     res_list = []
-    Threads.@threads for i ∈ 1:length(q_channels)
-        push!(res_list, take!(res_channel_dict))
+
+    for i ∈ 1:length(q_channels)
+        res = take!(res_channel_dict)
+        push!(res_list, res)
+    end
+    except_mask = [typeof(r) <: Exception for r in res_list]
+    if any(except_mask)
+        zipped_id_errors = collect(zip(["Error on worker $(c.where)" for c in q_channels], res_list))
+        throw([zipped_id_errors[except_mask]])
     end
     res = agrigate_f(res_list...)
     return res
