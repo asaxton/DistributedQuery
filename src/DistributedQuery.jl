@@ -1,41 +1,36 @@
 module DistributedQuery
+include("DQUtilities.jl")
 using Distributed
-using Serialization
 using DataFrames
 using CSV
 
 """
 
-    deployDataStore(data_worker_pool, serialized_file_list)
+    deployDataStore(data_worker_pool, worker_func, params=nothing)
 
-deployDataStore assumes your have already a number of serialized files that contain partitions of your dataset. deserialize() will be run on the files that you pass to serialize_file_list and the result will assigned to DistributedQuery.DataContainer. As a result the hosting model demands that data_worker_pool and serialized_file_list must be the same length
+deployDataStore takes a function and its parameters and deploys it to each worker in the the data_worker_pool. The results of each worker are assigned to DistributedQuery.DataContainer for later reference and a dictionary of futures of the results is instantly returned.
 
 # Arguments
 - `data_worker_pool::Any`: Array of worker ids that each of the data partitions will be placed on
-- `serialized_file_list::Any`: Array of strings that contain the path and filename to the serialized file
+- `worker_func::Any`: The function to be deployed on each worker
+- `params` : Optional array of parameters to be passed to the worker_func 
 
 # Returns
 - `Dict{Any, Future}`: Returns a Ditionary with worker id as the key, and Future of the spawend deserialize task
 
-# Throws
-- `ERROR`: Thrown if length(data_worker_pool) != length(serialized_file_list)
-
 """
-function deployDataStore(data_worker_pool, serialized_file_list)
-    if length(data_worker_pool) != length(serialized_file_list)
-        throw(error("""data_worker_pool and serialized_file_list must be the same length: """*
-                    """length(data_worker_pool):$(length(data_worker_pool)), """*
-                    """length(serialized_file_list):$(length(serialized_file_list))"""))
-    end
+function deployDataStore(data_worker_pool, worker_func, params=nothing)
     fut = Dict()
-    for (dw, sf) in zip(data_worker_pool, serialized_file_list)
-        _fut = @spawnat dw global DataContainer = deserialize(sf)
+    for dw in data_worker_pool
+        if params != nothing
+            _fut = @spawnat dw global DataContainer = worker_func(params...)    
+        else
+            _fut = @spawnat dw global DataContainer = worker_func()
+        end
         push!(fut, dw => _fut)
     end
-    fut
-    #[wait(f) for f in fut]
+    return fut
 end
-
 
 """
 
@@ -105,7 +100,7 @@ end
 
     function query_client(q_channels, res_channel_dict, agrigate_f, query_f, query_args...)
 
-This funcition is to submit the query to all the data worker, block until the remote queries come back, then apply the agrigation function to all the results.
+This function is to submit the query to all the data worker, block until the remote queries come back, then apply the agrigation function to all the results.
 
 
 # Throws
@@ -140,4 +135,4 @@ function make_query_channels(data_worker_pool, proc_worker_pool, chan_depth::Int
     return proc_chan, data_chan
 end
 
-end
+end # module DistributedQuery

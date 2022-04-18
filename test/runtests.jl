@@ -23,11 +23,12 @@ _shard_file_list = ["../mockData/iris_df_1.jlb",
                     "../mockData/iris_df_3.jlb"]
 
 shard_file_list = [joinpath(dirname(pathof(DistributedQuery)), sf) for sf in _shard_file_list]
-serialized_file_list = shard_file_list
+serialized_file_list = DistributedQuery.Utilities.partition(shard_file_list, p) 
 data_worker_pool = p
 proc_worker_pool = [myid()]
+
 @testset begin
-    fut = DistributedQuery.deployDataStore(data_worker_pool, serialized_file_list)
+    fut = DistributedQuery.deployDataStore(data_worker_pool, DistributedQuery.Utilities.loadSerializedFiles, [serialized_file_list])
 
     @test all([fetch(fut[p]) == @fetchfrom p DistributedQuery.DataContainer for p in data_worker_pool])
 
