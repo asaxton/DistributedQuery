@@ -34,13 +34,13 @@ end
 
 """
 
-    sentinal(DataContainer, q_channel, res_channel_dict, status_chan)
+    sentinel(DataContainer, q_channel, res_channel_dict, status_chan)
 
-`sentinal()` waits for a item to be put on the q_channel.
+`sentinel()` waits for a item to be put on the q_channel.
 
-The item put in `q_channel` should either be a `String` with the message `"Done"`, which will cause `sentinal()` to exit it's  while loop and return or the following **Query Dict**.
+The item put in `q_channel` should either be a `String` with the message `"Done"`, which will cause `sentinel()` to exit it's  while loop and return or the following **Query Dict**.
 
-- **Query Dict**: this Dict will contain 3 keys: `"query_f"`, `"query_args"`, and `"client"`. The primary function of `sentinal()` is to call, `q_res = query_req["query_f"](DataContainer, query_req["query_args"]...)` and place the result `q_res` in `res_channel_dict[query_req["client"]]`
+- **Query Dict**: this Dict will contain 3 keys: `"query_f"`, `"query_args"`, and `"client"`. The primary function of `sentinel()` is to call, `q_res = query_req["query_f"](DataContainer, query_req["query_args"]...)` and place the result `q_res` in `res_channel_dict[query_req["client"]]`
 
 # Arguments
 - `DataContainer::Any`: This should be a container. In typical usage it'll be a DataFrame that was loaded from deployDataStore()
@@ -54,38 +54,38 @@ The item put in `q_channel` should either be a `String` with the message `"Done"
 # Throws
 - `Nothing`
 """
-function sentinal(DataContainer, q_channel, res_channel_dict, status_chan)
-    stat_dict = Dict("message" => "In sentinal",
+function sentinel(DataContainer, q_channel, res_channel_dict, status_chan)
+    stat_dict = Dict("message" => "In sentinel",
                      "t_idx" => 1,
                      "myid()" => myid())
     put!(status_chan, stat_dict)
 
     query_failed = false
     while true
-        stat_dict["message"] = """In sentinal, waiting for take """*
+        stat_dict["message"] = """In sentinel, waiting for take """*
             """on channel $(q_channel)"""
         put!(status_chan, stat_dict)
         query_req = take!(q_channel)
-        stat_dict["message"] = "In sentinal, got take"
+        stat_dict["message"] = "In sentinel, got take"
         put!(status_chan, stat_dict)
         if query_req == "Done"
-            stat_dict["message"] = "In sentinal, break-ing"
+            stat_dict["message"] = "In sentinel, break-ing"
             put!(status_chan, stat_dict)
             break
         end
-        stat_dict["message"] = "In sentinal, query_f-ing"
+        stat_dict["message"] = "In sentinel, query_f-ing"
         put!(status_chan, stat_dict)
         try
             query_f = query_req["query_f"]
             global q_res = Base.invokelatest(query_f, DataContainer, query_req["query_args"]...)
         catch e
             query_failed = true
-            stat_dict["message"] = "In sentinal, catching error. e: $(e)"
+            stat_dict["message"] = "In sentinel, catching error. e: $(e)"
             put!(status_chan, stat_dict)
             put!(res_channel_dict[query_req["client"]], e)
         end
         if !query_failed
-            stat_dict["message"] = "In sentinal, putting-ing"
+            stat_dict["message"] = "In sentinel, putting-ing"
             put!(status_chan, stat_dict)
             put!(res_channel_dict[query_req["client"]], q_res)
             query_failed = false
