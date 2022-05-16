@@ -42,8 +42,8 @@ proc_worker_pool = [myid()]
 
     agrigate_f = (x...) ->  sum([x...])
 
-    sentinal_fut =
-        [@spawnat p DistributedQuery.sentinal(DistributedQuery.DataContainer,
+    sentinel_fut =
+        [@spawnat p DistributedQuery.sentinel(DistributedQuery.DataContainer,
                                               data_chan[myid()] ,proc_chan,
                                               status_chan)
          for p in data_worker_pool]
@@ -70,8 +70,8 @@ proc_worker_pool = [myid()]
 
 
     [put!(v, "Done") for (k,v) in data_chan]
-    sentinal_shutdown_timeout = 4
-    sleep(4)
-    @test all([isready(f) for f in sentinal_fut])
+    sentinel_shutdown_timeout = 4
+    sleep(sentinel_shutdown_timeout)
+    @test all([isready(f) for f in sentinel_fut])
 end
 rmprocs(p);
