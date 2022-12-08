@@ -1,6 +1,7 @@
 #DQUtilities.jl
 module Utilities
 
+using CSV
 using DataFrames
 using Distributed
 using Serialization
@@ -21,6 +22,26 @@ function loadSerializedFiles(partitioned_file_list)
 	df = DataFrame()
 	for file in partitioned_file_list[myid()]
 		data = deserialize(file)
+		append!(df, data)
+	end
+	return df
+end
+
+"""
+	loadCSVFiles(partitioned_file_list)
+
+Example/Utility function for loading CSV files using the deploydatastore
+
+# Arguments
+- `partitioned_file_list::Any`: Dictionary of arrays where each key is a host id and the array is a list of files to be loaded.
+
+# Returns
+- `Dict{Any, Any}`: Returns a DataFrame of the contents of all the serialized files.
+"""
+function loadCSVFiles(partitioned_file_list)
+	df = DataFrame()
+	for file in partitioned_file_list[myid()]
+		data = DataFrame(CSV.File(file))
 		append!(df, data)
 	end
 	return df
