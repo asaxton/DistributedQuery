@@ -128,8 +128,8 @@ csv_file_list = [joinpath(dirname(pathof(DistributedQuery)), sf) for sf in _csv_
 
     agrigate_f = (x...) ->  sum([x...])
 
-    sentinal_fut =
-        [@spawnat p DistributedQuery.sentinal(DistributedQuery.DataContainer,
+    sentinel_fut =
+        [@spawnat p DistributedQuery.sentinel(DistributedQuery.DataContainer,
                                               data_chan[myid()] ,proc_chan,
                                               status_chan)
          for p in data_worker_pool]
@@ -153,8 +153,8 @@ csv_file_list = [joinpath(dirname(pathof(DistributedQuery)), sf) for sf in _csv_
     end
 
     [put!(v, "Done") for (k,v) in data_chan]
-    sentinal_shutdown_timeout = 4
-    sleep(4)
-    @test all([isready(f) for f in sentinal_fut])
+    sentinel_shutdown_timeout = 4
+    sleep(sentinel_shutdown_timeout)
+    @test all([isready(f) for f in sentinel_fut])
     rmprocs(p);
 end
