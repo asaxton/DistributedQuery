@@ -5,47 +5,32 @@ using ClusterManagers
 using DistributedQuery
 
 # Test data
-_serialized_file_list = ["../mockData/iris_df_1.jlb",
-                    "../mockData/iris_df_2.jlb",
-                    "../mockData/iris_df_3.jlb",
-                    "../mockData/iris_df_4.jlb",
-                    "../mockData/iris_df_5.jlb",
-                    "../mockData/iris_df_6.jlb"]
-_csv_file_list = ["../mockData/iris_df_1.csv",
-                 "../mockData/iris_df_2.csv",
-                 "../mockData/iris_df_3.csv",
-                 "../mockData/iris_df_4.csv",
-                 "../mockData/iris_df_5.csv",
-                 "../mockData/iris_df_6.csv"]
+_serialized_file_list = ["../mockData/iris_df_1.jlb", "../mockData/iris_df_2.jlb",
+                    "../mockData/iris_df_3.jlb", "../mockData/iris_df_4.jlb",
+                    "../mockData/iris_df_5.jlb", "../mockData/iris_df_6.jlb"]
+_csv_file_list = ["../mockData/iris_df_1.csv",  "../mockData/iris_df_2.csv",
+                 "../mockData/iris_df_3.csv", "../mockData/iris_df_4.csv",
+                 "../mockData/iris_df_5.csv", "../mockData/iris_df_6.csv"]                 
 
 serialized_file_list = [joinpath(dirname(pathof(DistributedQuery)), sf) for sf in _serialized_file_list]
 csv_file_list = [joinpath(dirname(pathof(DistributedQuery)), sf) for sf in _csv_file_list]
 
-# Test loading functions
-function workerLoadTest(worker_pool, worker_function, file_list)
-    host_dict = DistributedQuery.Utilities.partition(file_list, worker_pool)
-    
-    fut = DistributedQuery.deployDataStore(worker_pool, worker_function, [host_dict])
-
-    @test all([fetch(fut[p]) == @fetchfrom p DistributedQuery.DataContainer for p in worker_pool])
-end
-
 @testset begin
     ### Test CSV Files
+    @info "Testing deploy datastore with CSV files"
     # Launch hosts
     if Base.current_project() != nothing
         proj_path = joinpath(["/", split(Base.active_project(), "/")[1:end-1]...])
         p = addprocs(SlurmManager(3),
-                    account="bbmb-hydro", partition="sandybridge",
                     time="00:30:00", ntasks_per_node=1,
                     exeflags="--project=$(proj_path)")
     else
         p = addprocs(SlurmManager(3),
-                    account="bbmb-hydro", partition="sandybridge",
                     time="00:30:00", ntasks_per_node=1,
                     exeflags="--project=$(proj_path)")
     end
 
+    # Setup host environments
     ap_dir = joinpath(splitpath(Base.active_project())[1:end-1])
     if "tmp" == splitpath(ap_dir)[2]
         hostNames = [@fetchfrom w gethostname() for w in p]
@@ -67,32 +52,37 @@ end
             end
         end
     end
-
-    # Setup host environments
+    
     @everywhere using DistributedQuery
     @everywhere using DataFrames
     @everywhere using CSV
 
     data_worker_pool = p
     proc_worker_pool = [myid()]
-    workerLoadTest(p, DistributedQuery.Utilities.loadCSVFiles, csv_file_list)
+
+    # Deploy the datastore
+    host_dict = DistributedQuery.Utilities.partition(csv_file_list, p)
+    fut = DistributedQuery.deployDataStore(p, DistributedQuery.Utilities.loadCSVFiles, [host_dict])
+    @test all([fetch(fut[w]) == @fetchfrom w DistributedQuery.DataContainer for w in p])
+    
+    # Kill procs so can test again with serialized files
     rmprocs(p)
 
     ### Test serialized files
+    @info "Testing deploy datastore with serialized files"
     # Launch hosts
     if Base.active_project() != nothing
         proj_path = joinpath(["/", split(Base.current_project(), "/")[1:end-1]...])
         p = addprocs(SlurmManager(3),
-                    account="bbmb-hydro", partition="sandybridge",
                     time="00:30:00", ntasks_per_node=1,
                     exeflags="--project=$(proj_path)")
     else
         p = addprocs(SlurmManager(3),
-                    account="bbmb-hydro", partition="sandybridge",
                     time="00:30:00", ntasks_per_node=1,
                     exeflags="--project=$(proj_path)")
     end
 
+    # Setup host environments
     ap_dir = joinpath(splitpath(Base.active_project())[1:end-1])
     if "tmp" == splitpath(ap_dir)[2]
         hostNames = [@fetchfrom w gethostname() for w in p]
@@ -115,7 +105,6 @@ end
         end
     end
 
-    # Setup host environments
     @everywhere using DistributedQuery
     @everywhere using DataFrames
     @everywhere using CSV
@@ -123,8 +112,12 @@ end
     data_worker_pool = p
     proc_worker_pool = [myid()]
 
-    workerLoadTest(p, DistributedQuery.Utilities.loadSerializedFiles, serialized_file_list)
+    # Deploy the datastore
+    host_dict = DistributedQuery.Utilities.partition(serialized_file_list, p)
+    fut = DistributedQuery.deployDataStore(p, DistributedQuery.Utilities.loadSerializedFiles, [host_dict])
+    @test all([fetch(fut[w]) == @fetchfrom w DistributedQuery.DataContainer for w in p])
 
+    @info "Testing Query Channels"
     proc_chan, data_chan = DistributedQuery.make_query_channels(data_worker_pool, proc_worker_pool)
 
     status_chan = RemoteChannel(()->Channel{Any}(10000), myid())
@@ -159,11 +152,9 @@ end
         @test false
     end
 
-
     [put!(v, "Done") for (k,v) in data_chan]
     sentinal_shutdown_timeout = 4
     sleep(4)
     @test all([isready(f) for f in sentinal_fut])
+    rmprocs(p);
 end
-rmprocs(p);
-
