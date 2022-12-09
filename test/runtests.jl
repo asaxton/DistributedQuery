@@ -13,10 +13,10 @@ _serialized_file_list = ["../mockData/iris_df_1.jlb",
                     "../mockData/iris_df_6.jlb"]
 _csv_file_list = ["../mockData/iris_df_1.csv",
                  "../mockData/iris_df_2.csv",
-                 "../mockDatairis_df_3.csv",
+                 "../mockData/iris_df_3.csv",
                  "../mockData/iris_df_4.csv",
                  "../mockData/iris_df_5.csv",
-                 "../mockDatairis_df_6.csv"]
+                 "../mockData/iris_df_6.csv"]
 
 serialized_file_list = [joinpath(dirname(pathof(DistributedQuery)), sf) for sf in _serialized_file_list]
 csv_file_list = [joinpath(dirname(pathof(DistributedQuery)), sf) for sf in _csv_file_list]
@@ -166,3 +166,4 @@ end
     @test all([isready(f) for f in sentinal_fut])
 end
 rmprocs(p);
+

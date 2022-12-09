@@ -1,6 +1,7 @@
 #DQUtilities.jl
 module Utilities
 
+using CSV
 using DataFrames
 using Distributed
 using Serialization
