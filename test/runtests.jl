@@ -3,17 +3,22 @@ using Test
 using Distributed
 using ClusterManagers
 using DistributedQuery
+using Serialization
+using DataFrames
 
 # Test data
-_serialized_file_list = ["../mockData/iris_df_1.jlb", "../mockData/iris_df_2.jlb",
-                    "../mockData/iris_df_3.jlb", "../mockData/iris_df_4.jlb",
-                    "../mockData/iris_df_5.jlb", "../mockData/iris_df_6.jlb"]
 _csv_file_list = ["../mockData/iris_df_1.csv",  "../mockData/iris_df_2.csv",
                  "../mockData/iris_df_3.csv", "../mockData/iris_df_4.csv",
                  "../mockData/iris_df_5.csv", "../mockData/iris_df_6.csv"]                 
 
-serialized_file_list = [joinpath(dirname(pathof(DistributedQuery)), sf) for sf in _serialized_file_list]
 csv_file_list = [joinpath(dirname(pathof(DistributedQuery)), sf) for sf in _csv_file_list]
+serialized_file_list = []
+@info "Creating serialized data files for testing"
+for f in csv_file_list
+    sfname = "$(join(split(f, ".")[1:end-1],"."))_test.jlb"
+    serialize(sfname, DataFrame(CSV.File(f)))
+    push!(serialized_file_list, sfname)
+end
 
 @testset begin
     ### Test CSV Files
@@ -128,8 +133,8 @@ csv_file_list = [joinpath(dirname(pathof(DistributedQuery)), sf) for sf in _csv_
 
     agrigate_f = (x...) ->  sum([x...])
 
-    sentinel_fut =
-        [@spawnat p DistributedQuery.sentinel(DistributedQuery.DataContainer,
+    sentinal_fut =
+        [@spawnat p DistributedQuery.sentinal(DistributedQuery.DataContainer,
                                               data_chan[myid()] ,proc_chan,
                                               status_chan)
          for p in data_worker_pool]
@@ -153,8 +158,13 @@ csv_file_list = [joinpath(dirname(pathof(DistributedQuery)), sf) for sf in _csv_
     end
 
     [put!(v, "Done") for (k,v) in data_chan]
-    sentinel_shutdown_timeout = 4
-    sleep(sentinel_shutdown_timeout)
-    @test all([isready(f) for f in sentinel_fut])
+    sentinal_shutdown_timeout = 4
+    sleep(4)
+    @test all([isready(f) for f in sentinal_fut])
     rmprocs(p);
+    @info "Cleaning up serialized files"
+    for f in serialized_file_list
+        rm(f)
+    end
 end
+
