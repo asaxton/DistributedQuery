@@ -133,8 +133,8 @@ end
 
     agrigate_f = (x...) ->  sum([x...])
 
-    sentinal_fut =
-        [@spawnat p DistributedQuery.sentinal(DistributedQuery.DataContainer,
+    sentinel_fut =
+        [@spawnat p DistributedQuery.sentinel(DistributedQuery.DataContainer,
                                               data_chan[myid()] ,proc_chan,
                                               status_chan)
          for p in data_worker_pool]
@@ -153,18 +153,30 @@ end
         #@test round(local_result;  digits=test_to_digit) == round(query_result;  digits=test_to_digit)
         #@test local_result == query_result
     else
-        print("test query was not done in query_timeout_in_s: $query_timeout_in_s")
+        @info "Test query was not done in query_timeout_in_s: $query_timeout_in_s\n"
+        sf_ready_array = [isready(sf) for sf in sentinel_fut]
+        if any(sf_ready_array)
+            sf_idx = findfirst(x -> x, sf_ready_array)
+            @info "Sentinals $(sf_ready_array) exited early. fetch(sentinel_fut[$(sf_idx)]) returns:"
+            @info fetch(sentinel_fut[sf_idx])
+        end
+
+        @info "The Status Channel is:"
+        while isready(status_chan)
+            @info "$(take!(status_chan))"
+        end
         @test false
     end
 
     [put!(v, "Done") for (k,v) in data_chan]
-    sentinal_shutdown_timeout = 4
-    sleep(4)
-    @test all([isready(f) for f in sentinal_fut])
+    sentinel_shutdown_timeout = 4
+    sleep(sentinel_shutdown_timeout)
+    @test all([isready(f) for f in sentinel_fut])
     rmprocs(p);
     @info "Cleaning up serialized files"
     for f in serialized_file_list
         rm(f)
     end
+
 end
 
