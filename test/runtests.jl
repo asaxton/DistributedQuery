@@ -157,7 +157,7 @@ end
         sf_ready_array = [isready(sf) for sf in sentinel_fut]
         if any(sf_ready_array)
             sf_idx = findfirst(x -> x, sf_ready_array)
-            @info "Sentinals $(sf_ready_array) exited early. fetch(sentinel_fut[$(sf_idx)]) returns:"
+            @info "Sentinels $(sf_ready_array) exited early. fetch(sentinel_fut[$(sf_idx)]) returns:"
             @info fetch(sentinel_fut[sf_idx])
         end
 
