@@ -1,6 +1,6 @@
 # jlDistributedQuery
 
-**DistributedQuery** Is meant to host large datasets in partitioned across multiple workers with queryable access. Idealy, worker will be remote worker with their own memory. has 3 major part, `deployDataStore()`, `sentinal()`, `make_query_channels()`, `query_client()`. The basic exicution is the following,
+**DistributedQuery** Is meant to host large datasets in partitioned across multiple workers with queryable access. Idealy, worker will be remote worker with their own memory. has 3 major part, `deployDataStore()`, `sentinel()`, `make_query_channels()`, `query_client()`. The basic exicution is the following,
 
 
 ```
@@ -56,8 +56,8 @@ query_args = ["sepal_l"]
 
 agrigate_f = (x...) -> sum(vcat(x...))
 
-sentinal_fut =
-    [@spawnat p DistributedQuery.sentinal(DistributedQuery.DataContainer,
+sentinel_fut =
+    [@spawnat p DistributedQuery.sentinel(DistributedQuery.DataContainer,
                                           data_chan[myid()] ,proc_chan,
                                           status_chan)
      for p in data_worker_pool]
@@ -69,11 +69,11 @@ query_task = @async DistributedQuery.query_client(data_chan, proc_chan[1], agrig
 
 [take!(status_chan) for i in 1:1000 if isready(status_chan)]
 [put!(v, "Done") for (k,v) in data_chan]
-[wait(f) for f in sentinal_fut]
+[wait(f) for f in sentinel_fut]
 [take!(status_chan) for i in 1:1000 if isready(status_chan)]
 
-sentinal_fut =
-    [@spawnat p DistributedQuery.sentinal(DistributedQuery.DataContainer,
+sentinel_fut =
+    [@spawnat p DistributedQuery.sentinel(DistributedQuery.DataContainer,
                                           data_chan[myid()] ,proc_chan,
                                           status_chan)
      for p in data_worker_pool]
