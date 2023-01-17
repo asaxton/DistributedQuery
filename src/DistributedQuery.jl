@@ -121,7 +121,7 @@ function query_client(q_channels, res_channel_dict, agrigate_f, query_f, query_a
     end
     except_mask = [typeof(r) <: Exception for r in res_list]
     if any(except_mask)
-        zipped_id_errors = collect(zip(["Error on worker $(c.where)" for c in q_channels], res_list))
+        zipped_id_errors = collect(zip(["Error on worker $(c[1])" for c in q_channels], res_list))
         throw([zipped_id_errors[except_mask]])
     end
     res = agrigate_f(res_list...)
