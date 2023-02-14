@@ -90,6 +90,7 @@ function sentinel(DataContainer, q_channel, res_channel_dict, status_chan)
             put!(res_channel_dict[query_req["client"]], q_res)
             query_failed = false
         end
+        GC.gc()
     end
     stat_dict["message"] = "Final Exit"
     put!(status_chan, stat_dict)
