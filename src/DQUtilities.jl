@@ -38,10 +38,14 @@ Example/Utility function for loading CSV files using the deploydatastore
 # Returns
 - `Dict{Any, Any}`: Returns a DataFrame of the contents of all the serialized files.
 """
-function loadCSVFiles(partitioned_file_list)
+function loadCSVFiles(partitioned_file_list, ntasks=Threads.nthreads(), header=nothing)
 	df = DataFrame()
 	for file in partitioned_file_list[myid()]
-		data = DataFrame(CSV.File(file))
+		if header != nothing
+			data = DataFrame(CSV.read(file, DataFrame, ntasks=ntasks, header=header))
+		else
+			data = DataFrame(CSV.read(file, DataFrame, ntasks=ntasks))
+		end
 		append!(df, data)
 	end
 	return df
